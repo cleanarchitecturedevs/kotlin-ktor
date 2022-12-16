@@ -1,7 +1,7 @@
 package de.christianbergau.application.usecase.addproduct
 
 interface AddProductPresenter {
-    suspend fun presentProduct(product: AddProductDto)
-    suspend fun presentValidationError(errors: List<Map<String, String>>)
-    suspend fun presentInternalServerError(message: String)
+    suspend fun product(product: AddProductDto)
+    suspend fun validationErrors(errors: List<Map<String, String>>)
+    suspend fun internalError(message: String)
 }

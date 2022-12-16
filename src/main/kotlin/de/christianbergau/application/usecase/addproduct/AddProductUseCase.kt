@@ -27,21 +27,27 @@ class AddProductUseCase constructor(
                 mapOf(ve.dataPath to ve.message)
             }
 
-            return presenter.presentValidationError(errors)
+            return presenter.validationErrors(errors)
         }
 
-        val newProduct = repository.save(Product(id = 0, ean = request.ean))
+        val newProduct: Product?
 
-        if (newProduct != null) {
-            return presenter.presentProduct(
-                AddProductDto(
-                    id = newProduct.id,
-                    ean = newProduct.ean
-                )
+        try {
+            newProduct = repository.save(Product(id = 0, ean = request.ean))
+        } catch (e: Throwable) {
+            return presenter.internalError("Internal Error during saving Product")
+        }
+
+        if (newProduct == null) {
+            return presenter.internalError("unknown error");
+        }
+
+        presenter.product(
+            AddProductDto(
+                id = newProduct.id,
+                ean = newProduct.ean
             )
-        }
-
-        presenter.presentInternalServerError("unknown error")
+        )
     }
 }
 

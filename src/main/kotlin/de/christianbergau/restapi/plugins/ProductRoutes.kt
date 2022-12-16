@@ -51,16 +51,16 @@ class ShowProductsApiPresenter constructor(private val context: RoutingApplicati
 }
 
 class AddProductApiPresenter constructor(private val context: RoutingApplicationCall) : AddProductPresenter {
-    override suspend fun presentProduct(product: AddProductDto) {
+    override suspend fun product(product: AddProductDto) {
         val viewModel = ProductApiModel(product.id, product.ean)
         context.respond(viewModel)
     }
 
-    override suspend fun presentValidationError(errors: List<Map<String, String>>) {
+    override suspend fun validationErrors(errors: List<Map<String, String>>) {
         context.respond(HttpStatusCode.BadRequest, errors)
     }
 
-    override suspend fun presentInternalServerError(message: String) {
+    override suspend fun internalError(message: String) {
         context.respond(HttpStatusCode.InternalServerError, message)
     }
 }
