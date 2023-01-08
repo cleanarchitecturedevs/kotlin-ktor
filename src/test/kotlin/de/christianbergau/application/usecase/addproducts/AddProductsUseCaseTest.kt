@@ -9,12 +9,9 @@ import de.christianbergau.application.usecase.addproduct.AddProductUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddProductsUseCaseTest {
@@ -44,7 +41,7 @@ class AddProductsUseCaseTest {
     fun shouldPresentGeneralErrorWhenRepositoryThrowsException() = runTest {
         // arrange
         val present = mockk<AddProductPresenter>()
-        coEvery { present.internalError("Internal Error during saving Product") } returns Unit
+        coEvery { present.internalError("New Product was not saved") } returns Unit
         val repository = mockk<ProductRepository>()
         coEvery { repository.save(any()) } throws IllegalStateException()
         val useCase = AddProductUseCase(presenter = present, repository = repository)
