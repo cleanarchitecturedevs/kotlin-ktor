@@ -69,10 +69,7 @@ class AddProductUseCase constructor(
     private suspend fun save(product: Product): MyResult<Product> {
         try {
             val newProduct = repository.save(product)
-
-            if (newProduct == null) {
-                return MyFailure(Error("New Product was not saved"));
-            }
+                ?: return MyFailure(Error("New Product was not saved"))
 
             return MySuccess(newProduct)
         } catch (e: Throwable) {
