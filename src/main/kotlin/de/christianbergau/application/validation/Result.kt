@@ -12,6 +12,8 @@ suspend infix fun <T,U> Result<T>.then(f: suspend (T) -> Result<U>) =
 // Pipe input: the beginning of a railway
 suspend infix fun <T,U> T.to(f: suspend (T) -> Result<U>) = Success(this) then f
 
+suspend infix fun <T,U> T.to(f: (T) -> Result<U>) = Success(this) then f
+
 // Handle error output: the end of a railway
 suspend infix fun <T> Result<T>.otherwise(f: suspend (Throwable) -> Unit) =
     if (this is Failure) f(this.throwable) else Unit

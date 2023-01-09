@@ -38,7 +38,7 @@ class AddProductUseCase constructor(
         return presenter.internalError("${err.message}")
     }
 
-    private suspend fun validate(request: AddProductRequest): Result<Product> {
+    private fun validate(request: AddProductRequest): Result<Product> {
         val validationResult = validateProduct.validate(request)
 
         if (validationResult.errors.isNotEmpty()) {
