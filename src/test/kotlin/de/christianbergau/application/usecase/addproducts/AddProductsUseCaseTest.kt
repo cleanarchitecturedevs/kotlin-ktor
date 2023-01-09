@@ -41,7 +41,7 @@ class AddProductsUseCaseTest {
     fun shouldPresentGeneralErrorWhenRepositoryThrowsException() = runTest {
         // arrange
         val present = mockk<AddProductPresenter>()
-        coEvery { present.internalError("New Product was not saved") } returns Unit
+        coEvery { present.internalError("Internal Error during saving Product") } returns Unit
         val repository = mockk<ProductRepository>()
         coEvery { repository.save(any()) } throws IllegalStateException()
         val useCase = AddProductUseCase(presenter = present, repository = repository)
@@ -57,7 +57,7 @@ class AddProductsUseCaseTest {
     fun shouldPresentGeneralErrorWhenRepositoryReturnedNoNewProduct() = runTest {
         // arrange
         val present = mockk<AddProductPresenter>()
-        coEvery { present.internalError("unknown error") } returns Unit
+        coEvery { present.internalError("New Product was not saved") } returns Unit
         val repository = mockk<ProductRepository>()
         coEvery { repository.save(any()) } returns null
         val useCase = AddProductUseCase(presenter = present, repository = repository)
@@ -66,7 +66,7 @@ class AddProductsUseCaseTest {
         useCase.execute(AddProductRequest(ean = "1234567890123"))
 
         // assert
-        coVerify { present.internalError("unknown error") }
+        coVerify { present.internalError("New Product was not saved") }
         coVerify { repository.save(Product(id = 0, ean = "1234567890123")) }
     }
 

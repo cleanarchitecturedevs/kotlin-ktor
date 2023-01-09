@@ -7,9 +7,24 @@ import io.konform.validation.Validation
 import io.konform.validation.jsonschema.maxLength
 import io.konform.validation.jsonschema.minLength
 import io.konform.validation.jsonschema.pattern
-import kotlinx.coroutines.runBlocking
 
-infix fun <T, U> T.to(f: (T) -> Result<U>) = Result.success(this).map(f)
+sealed class MyResult<T>
+data class MySuccess<T>(val value: T): MyResult<T>()
+data class MyFailure<T>(val throwable: Throwable): MyResult<T>()
+
+// Composition: apply a function f to Success results
+suspend infix fun <T,U> MyResult<T>.then(f: suspend (T) -> MyResult<U>) =
+    when (this) {
+        is MySuccess -> f(this.value)
+        is MyFailure -> MyFailure(this.throwable)
+    }
+
+// Pipe input: the beginning of a railway
+suspend infix fun <T,U> T.to(f: suspend (T) -> MyResult<U>) = MySuccess(this) then f
+
+// Handle error output: the end of a railway
+suspend infix fun <T> MyResult<T>.otherwise(f: suspend (Throwable) -> Unit) =
+    if (this is MyFailure) f(this.throwable) else Unit
 
 class AddProductUseCase constructor(
     private val presenter: AddProductPresenter,
@@ -24,10 +39,11 @@ class AddProductUseCase constructor(
     }
 
     suspend fun execute(request: AddProductRequest) {
-        validate(request)
-            .map { product -> save(product) }
-            .map { result -> presentSuccess(result.getOrThrow()) }
-            .onFailure { error ->  presentError(error) }
+        request to
+                ::validate then
+                ::save then
+                ::presentSuccess otherwise
+                ::presentError
     }
 
     private suspend fun presentError(err: Throwable) {
@@ -40,37 +56,39 @@ class AddProductUseCase constructor(
         return presenter.internalError("${err.message}")
     }
 
-    private fun validate(request: AddProductRequest): Result<Product> {
+    private suspend fun validate(request: AddProductRequest): MyResult<Product> {
         val validationResult = validateProduct.validate(request)
 
         if (validationResult.errors.isNotEmpty()) {
-            return Result.failure(ValidationError(validationResult.errors))
+            return MyFailure(ValidationError(validationResult.errors))
         }
 
-        return Result.success(Product(id = 0, ean = request.ean))
+        return MySuccess(Product(id = 0, ean = request.ean))
     }
 
-    private suspend fun save(product: Product): Result<Product> {
+    private suspend fun save(product: Product): MyResult<Product> {
         try {
             val newProduct = repository.save(product)
 
             if (newProduct == null) {
-                return Result.failure(Error("New Product was not saved"));
+                return MyFailure(Error("New Product was not saved"));
             }
 
-            return Result.success(newProduct)
+            return MySuccess(newProduct)
         } catch (e: Throwable) {
-            return Result.failure(Error("Internal Error during saving Product"))
+            return MyFailure(Error("Internal Error during saving Product"))
         }
     }
 
-    private suspend fun presentSuccess(product: Product) {
+    private suspend fun presentSuccess(product: Product): MyResult<String> {
         presenter.product(
             AddProductDto(
                 id = product.id,
                 ean = product.ean
             )
         )
+
+        return MySuccess("ok")
     }
 }
 
