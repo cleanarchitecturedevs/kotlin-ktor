@@ -2,29 +2,11 @@ package de.christianbergau.application.usecase.addproduct
 
 import de.christianbergau.application.entity.Product
 import de.christianbergau.application.repository.ProductRepository
-import de.christianbergau.application.validation.ValidationError
+import de.christianbergau.application.validation.*
 import io.konform.validation.Validation
 import io.konform.validation.jsonschema.maxLength
 import io.konform.validation.jsonschema.minLength
 import io.konform.validation.jsonschema.pattern
-
-sealed class MyResult<T>
-data class MySuccess<T>(val value: T): MyResult<T>()
-data class MyFailure<T>(val throwable: Throwable): MyResult<T>()
-
-// Composition: apply a function f to Success results
-suspend infix fun <T,U> MyResult<T>.then(f: suspend (T) -> MyResult<U>) =
-    when (this) {
-        is MySuccess -> f(this.value)
-        is MyFailure -> MyFailure(this.throwable)
-    }
-
-// Pipe input: the beginning of a railway
-suspend infix fun <T,U> T.to(f: suspend (T) -> MyResult<U>) = MySuccess(this) then f
-
-// Handle error output: the end of a railway
-suspend infix fun <T> MyResult<T>.otherwise(f: suspend (Throwable) -> Unit) =
-    if (this is MyFailure) f(this.throwable) else Unit
 
 class AddProductUseCase constructor(
     private val presenter: AddProductPresenter,
@@ -56,28 +38,28 @@ class AddProductUseCase constructor(
         return presenter.internalError("${err.message}")
     }
 
-    private suspend fun validate(request: AddProductRequest): MyResult<Product> {
+    private suspend fun validate(request: AddProductRequest): Result<Product> {
         val validationResult = validateProduct.validate(request)
 
         if (validationResult.errors.isNotEmpty()) {
-            return MyFailure(ValidationError(validationResult.errors))
+            return Failure(ValidationError(validationResult.errors))
         }
 
-        return MySuccess(Product(id = 0, ean = request.ean))
+        return Success(Product(id = 0, ean = request.ean))
     }
 
-    private suspend fun save(product: Product): MyResult<Product> {
+    private suspend fun save(product: Product): Result<Product> {
         try {
             val newProduct = repository.save(product)
-                ?: return MyFailure(Error("New Product was not saved"))
+                ?: return Failure(Error("New Product was not saved"))
 
-            return MySuccess(newProduct)
+            return Success(newProduct)
         } catch (e: Throwable) {
-            return MyFailure(Error("Internal Error during saving Product"))
+            return Failure(Error("Internal Error during saving Product"))
         }
     }
 
-    private suspend fun presentSuccess(product: Product): MyResult<String> {
+    private suspend fun presentSuccess(product: Product): Result<String> {
         presenter.product(
             AddProductDto(
                 id = product.id,
@@ -85,7 +67,7 @@ class AddProductUseCase constructor(
             )
         )
 
-        return MySuccess("ok")
+        return Success("ok")
     }
 }
 
